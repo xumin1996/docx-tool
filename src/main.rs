@@ -4,8 +4,7 @@ use docx_handlebars::render_handlebars;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use serde_json::json;
-use std::{collections::HashMap, hash::Hash};
-
+use std::collections::HashMap;
 
 const SWAGGER_DOCX_MODEL: &[u8] = include_bytes!("../asset/swagger-model.docx");
 
@@ -25,9 +24,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         // todo 判断是网络文件还是本地文件// 创建同步客户端
         let client = reqwest::blocking::Client::new();
         // 发送GET请求并获取响应
-        let response = client
-            .get("http://192.168.3.157:10501/v2/api-docs")
-            .send()?;
+        let response = client.get(swagger_path).send()?;
 
         let sw: SwaggerDocument = serde_json::from_slice(response.bytes().unwrap().as_ref())?;
         // println!("{:?}", sw);
@@ -63,11 +60,17 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 }
             }
         }
-        println!("{:?}", apis);
+        let docx_project = DocxProjectInfo {
+            name: sw.info.title.clone(),
+            apis: apis,
+        };
+        println!("{:?}", docx_project);
 
         // 渲染模板
-        let template_bytes = std::fs::read("template/model.docx")?;
-        let result = render_handlebars(SWAGGER_DOCX_MODEL.to_vec(), &serde_json::to_value(&apis)?)?;
+        let result = render_handlebars(
+            SWAGGER_DOCX_MODEL.to_vec(),
+            &serde_json::to_value(&docx_project)?,
+        )?;
 
         // 保存
         std::fs::write("output.docx", result)?;
@@ -209,6 +212,15 @@ pub enum Definition {
 }
 
 // 下面是docx的模板
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct DocxProjectInfo {
+    // 项目名称
+    name: String,
+
+    // 接口描述
+    apis: HashMap<String, Vec<DocxApiInfo>>,
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct DocxApiInfo {
     // 接口名称
