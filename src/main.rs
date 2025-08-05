@@ -48,7 +48,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     for param in params {
                         if let Some(schema) = param.schema {
                             if let SchemaRef::Ref { ref_, original_ref } = schema {
-                                let mut ps = by_definitions(
+                                let mut ps = param_by_definitions(
                                     &original_ref.unwrap_or("".to_string()),
                                     &sw.definitions,
                                 );
@@ -73,6 +73,24 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     }
                 }
 
+                // 返回参数
+                let mut return_params: Vec<DocxReturnParamInfo> = vec![];
+                if let Some(response) = operation.responses.get("200") {
+                    let description = response.description.clone();
+                    if let Some(schema) = &response.schema {
+                        if let SchemaRef::Ref { ref_, original_ref } = schema {
+                            let mut ps = response_by_definitions(
+                                original_ref.as_ref().unwrap_or(&"".to_string()),
+                                &sw.definitions,
+                            );
+                            // 在每个参数前面加上"body."
+                            ps.iter_mut()
+                                .for_each(|item| item.name = format!("body.{}", item.name));
+                            return_params.extend(ps);
+                        }
+                    }
+                }
+
                 let doc_api_info = DocxApiInfo {
                     name: operation.summary.clone().unwrap_or("".to_string()),
                     desc: operation.summary.clone().unwrap_or("".to_string()),
@@ -81,7 +99,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     api_type: "".to_string(),
                     return_type: "*/*".to_string(),
                     query_params: query_params,
-                    return_params: vec![],
+                    return_params: return_params,
                 };
 
                 // tags
@@ -111,7 +129,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-fn by_definitions(
+fn param_by_definitions(
     original_ref: &String,
     definitions: &HashMap<String, Definition>,
 ) -> Vec<DocxParamInfo> {
@@ -133,6 +151,31 @@ fn by_definitions(
                         } else {
                             "N".to_string()
                         },
+                        desc: prop.description.clone().unwrap_or("".to_string()),
+                    };
+                    ps.push(spi);
+                }
+            }
+        }
+    }
+
+    return ps;
+}
+
+fn response_by_definitions(
+    original_ref: &String,
+    definitions: &HashMap<String, Definition>,
+) -> Vec<DocxReturnParamInfo> {
+    let mut ps: Vec<DocxReturnParamInfo> = vec![];
+    if let Some(definition) = definitions.get(original_ref) {
+        if let Definition::Object(scheme) = definition {
+            if let Some(hm) = &scheme.properties {
+                for ele in hm {
+                    let name = ele.0;
+                    let prop = ele.1;
+                    let spi = DocxReturnParamInfo {
+                        name: name.clone(),
+                        data_type: prop.type_.clone(),
                         desc: prop.description.clone().unwrap_or("".to_string()),
                     };
                     ps.push(spi);
