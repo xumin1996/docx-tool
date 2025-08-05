@@ -73,9 +73,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     }
                 }
 
+                // 状态码
+                let mut status_codes: Vec<DocxStatusCode> = vec![];
+                for ele in &operation.responses {
+                    status_codes.push(DocxStatusCode {
+                        code: ele.0.clone(),
+                        desc: ele.1.description.clone(),
+                        explain: "".to_string(),
+                    });
+                }
+
                 // 返回参数
                 let mut return_params: Vec<DocxReturnParamInfo> = vec![];
-                if let Some(response) = operation.responses.get("200") {
+                if let Some(response) = &operation.responses.get("200") {
                     let description = response.description.clone();
                     if let Some(schema) = &response.schema {
                         if let SchemaRef::Ref { ref_, original_ref } = schema {
@@ -99,6 +109,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     api_type: "".to_string(),
                     return_type: "*/*".to_string(),
                     query_params: query_params,
+                    status_codes: status_codes,
                     return_params: return_params,
                 };
 
@@ -325,6 +336,9 @@ pub struct DocxApiInfo {
     // 请求参数列表
     query_params: Vec<DocxParamInfo>,
 
+    // 状态码
+    status_codes: Vec<DocxStatusCode>,
+
     // 返回参数列表
     return_params: Vec<DocxReturnParamInfo>,
 }
@@ -345,6 +359,18 @@ pub struct DocxParamInfo {
 
     // 说明
     desc: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct DocxStatusCode {
+    // 状态码
+    code: String,
+
+    // 描述
+    desc: String,
+
+    // 说明
+    explain: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
