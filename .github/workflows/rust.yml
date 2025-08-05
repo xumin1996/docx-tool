@@ -1,0 +1,65 @@
+name: Rust
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Build Release
+      run: cargo build --release --verbose
+    - name: Run tests
+      run: cargo test --verbose
+    - name: Upload binary
+      uses: actions/upload-artifact@v4
+      with:
+        name: docx-tool
+        path: target/release/docx-tool
+  build-x86_64-unknown-linux-musl:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Install musl toolchain
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y musl-tools
+    - name: install musl
+      run: |
+        # 安装依赖
+        rustup default stable
+        rustup target add x86_64-unknown-linux-musl
+    - name: Build
+      run: cargo build --target x86_64-unknown-linux-musl --release --verbose
+    - name: Upload binary
+      uses: actions/upload-artifact@v4
+      with:
+        name: docx-tool-musl
+        path: target/x86_64-unknown-linux-musl/release/docx-tool
+  build-x86_64-pc-windows-gnu:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Install toolchain
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y mingw-w64
+    - name: install musl
+      run: |
+        # 安装依赖
+        rustup default stable
+        rustup target add x86_64-pc-windows-gnu
+    - name: Build
+      run: cargo build --target x86_64-pc-windows-gnu --release --verbose
+    - name: Upload binary
+      uses: actions/upload-artifact@v4
+      with:
+        name: docx-tool-x86_64-pc-windows-gnu
+        path: target/x86_64-pc-windows-gnu/release/docx-tool.exe
