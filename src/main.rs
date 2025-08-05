@@ -41,6 +41,38 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             for methods in method_infos {
                 let method = methods.0;
                 let operation = methods.1;
+
+                // 请求参数
+                let mut query_params: Vec<DocxParamInfo> = vec![];
+                if let Some(params) = operation.parameters {
+                    for param in params {
+                        if let Some(schema) = param.schema {
+                            if let SchemaRef::Ref { ref_, original_ref } = schema {
+                                let mut ps = by_definitions(
+                                    &original_ref.unwrap_or("".to_string()),
+                                    &sw.definitions,
+                                );
+                                // 在每个参数前面加上"body."
+                                ps.iter_mut()
+                                    .for_each(|item| item.name = format!("body.{}", item.name));
+                                query_params.extend(ps);
+                            }
+                        } else {
+                            query_params.push(DocxParamInfo {
+                                name: param.name.clone(),
+                                data_type: param.param_type.clone().unwrap_or("".to_string()),
+                                param_type: param.in_,
+                                required: if param.required {
+                                    "Y".to_string()
+                                } else {
+                                    "N".to_string()
+                                },
+                                desc: param.description.clone().unwrap_or("".to_string()),
+                            });
+                        }
+                    }
+                }
+
                 let doc_api_info = DocxApiInfo {
                     name: operation.summary.clone().unwrap_or("".to_string()),
                     desc: operation.summary.clone().unwrap_or("".to_string()),
@@ -48,7 +80,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     method: method,
                     api_type: "".to_string(),
                     return_type: "*/*".to_string(),
-                    query_params: vec![],
+                    query_params: query_params,
                     return_params: vec![],
                 };
 
@@ -76,36 +108,40 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         std::fs::write("output.docx", result)?;
     }
 
-    // // 读取docx模板文件
-    // let template_bytes = std::fs::read("template/model.docx")?;
-
-    // // 准备数据
-    // let data = json!({
-    //     "cheng_xu_miao_shu": [
-    //         "描述内容1",
-    //         "描述内容2",
-    //         "描述内容3"
-    //     ],
-    //     "shu_ru_xiang": [
-    //         {
-    //             "shu_ru_xiang": "旧码",
-    //             "lei_xing": "String1"
-    //         },
-    //         {
-    //             "shu_ru_xiang": "新码",
-    //             "lei_xing": "String2"
-    //         },
-    //     ],
-    //     "image_base64": general_purpose::STANDARD.encode(&std::fs::read("/home/x/Pictures/stream_water_street_1379018_1920x1080.jpg")?)
-    // });
-
-    // // 渲染模板
-    // let result = render_handlebars(template_bytes, &data)?;
-
-    // // 保存结果
-    // std::fs::write("output.docx", result)?;
-
     Ok(())
+}
+
+fn by_definitions(
+    original_ref: &String,
+    definitions: &HashMap<String, Definition>,
+) -> Vec<DocxParamInfo> {
+    let mut ps: Vec<DocxParamInfo> = vec![];
+    if let Some(definition) = definitions.get(original_ref) {
+        if let Definition::Object(scheme) = definition {
+            let reqwest_long = vec![];
+            let require = scheme.required.as_ref().unwrap_or(&reqwest_long);
+            if let Some(hm) = &scheme.properties {
+                for ele in hm {
+                    let name = ele.0;
+                    let prop = ele.1;
+                    let spi = DocxParamInfo {
+                        name: name.clone(),
+                        data_type: prop.type_.clone(),
+                        param_type: "".to_string(),
+                        required: if require.contains(name) {
+                            "Y".to_string()
+                        } else {
+                            "N".to_string()
+                        },
+                        desc: prop.description.clone().unwrap_or("".to_string()),
+                    };
+                    ps.push(spi);
+                }
+            }
+        }
+    }
+
+    return ps;
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -172,6 +208,7 @@ pub enum SchemaRef {
     Ref {
         #[serde(rename = "$ref")]
         ref_: String,
+        #[serde(rename = "originalRef")]
         original_ref: Option<String>,
     },
     Object(Schema),
@@ -182,6 +219,7 @@ pub enum SchemaRef {
 pub struct Schema {
     #[serde(rename = "type")]
     pub type_: Option<String>,
+    pub required: Option<Vec<String>>,
     pub properties: Option<HashMap<String, Property>>,
     pub title: Option<String>,
 }
