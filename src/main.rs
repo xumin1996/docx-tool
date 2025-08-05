@@ -17,7 +17,30 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .value_parser(clap::value_parser!(String))
                 .help("基于swagger生成接口文档，目前支持swagger 2.0"),
         )
+        .arg(
+            Arg::new("docx-model")
+                .long("model")
+                .value_parser(clap::value_parser!(String))
+                .help("docx的模板路径"),
+        )
+        .arg(
+            Arg::new("model-json")
+                .long("json")
+                .value_parser(clap::value_parser!(String))
+                .help("docx的模板填充的json数据文件路径"),
+        )
+        .arg(
+            Arg::new("output")
+                .long("output")
+                .value_parser(clap::value_parser!(String))
+                .help("输出文件名"),
+        )
         .get_matches();
+
+    let mut output_file_name: String = "output.docx".to_string();
+    if let Some(output) = matches.get_one::<String>("output") {
+        output_file_name = output.clone();
+    }
 
     // 解析swagger并生成文档
     if let Some(swagger_path) = matches.get_one::<String>("swagger") {
@@ -134,7 +157,26 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         )?;
 
         // 保存
-        std::fs::write("output.docx", result)?;
+        std::fs::write(output_file_name, result)?;
+
+        return Ok(());
+    }
+
+    // 通用的模板
+    if let Some(model_path) = matches.get_one::<String>("docx-model") {
+        if let Some(json_path) = matches.get_one::<String>("docx-model") {
+            let template_bytes = std::fs::read(model_path)?;
+            let json_bytes = std::fs::read(json_path)?;
+            let value: Value = serde_json::from_slice(&json_bytes)?;
+
+            // 渲染模板
+            let result = render_handlebars(template_bytes, &value)?;
+
+            // 保存
+            std::fs::write(output_file_name, result)?;
+
+            return Ok(());
+        }
     }
 
     Ok(())
