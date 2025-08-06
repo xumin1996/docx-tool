@@ -172,6 +172,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             image_to_base64(&mut value);
 
             // 渲染模板
+        println!("{}", serde_json::to_string_pretty(&value)?);
             let result = render_handlebars(template_bytes, &value)?;
 
             // 保存
@@ -187,17 +188,24 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 fn image_to_base64(value: &mut Value) {
     match value {
         Value::Object(map) => {
+            let mut add_items: HashMap<String, Value> = HashMap::new();
             for (k, v) in map.iter_mut() {
                 if k.ends_with(".image") {
                     if let Value::String(map_value) = v {
                         let content = get_file_bytes(map_value).unwrap_or(vec![]);
                         *v = Value::String(general_purpose::STANDARD.encode(&content));
+                        add_items.insert(
+                            k.strip_suffix(".image").unwrap_or(k).to_string(),
+                            Value::String(general_purpose::STANDARD.encode(&content)),
+                        );
                     }
                 }
                 if let Value::Object(map_value) = v {
                     image_to_base64(v);
                 }
             }
+            // 添加
+            map.extend(add_items);
         }
         Value::Array(arr) => {
             for ele in arr {
