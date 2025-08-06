@@ -288,7 +288,7 @@ pub struct SwaggerDocument {
     pub swagger: String,
     pub info: Info,
     pub host: String,
-    pub basePath: String,
+    pub basePath: Option<String>,
     pub tags: Vec<Tag>,
     pub paths: HashMap<String, HashMap<String, Operation>>,
     pub securityDefinitions: HashMap<String, SecurityDefinition>,
