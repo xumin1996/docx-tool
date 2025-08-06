@@ -67,7 +67,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
-    - name: install musl
+    - name: install wasm32-wasip1
       run: |
         # 安装依赖
         rustup default stable
