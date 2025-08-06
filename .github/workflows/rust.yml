@@ -78,4 +78,4 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: docx-tool-wasm32-wasip1
-        path: target/wasm32-wasip1/release/docx-tool
+        path: target/wasm32-wasip1/release/docx-tool.wasm
