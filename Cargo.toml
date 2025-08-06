@@ -8,8 +8,8 @@ base64 = "0.22.1"
 clap = "4.5.42"
 docx-handlebars = "0.2.4"
 docx-rs = "0.4.18"
-reqwest = {version="0.12.22", features = ["blocking"] }
+reqwest = { version = "0.12.22", default-features = false, features = ["blocking", "rustls-tls"] }
 serde = "1.0.219"
 serde_json = "1.0.142"
-openssl = { version = "0.10", features = ["vendored"] }
 bytes = "1.10.1"
+rustls = { version = "0.23.31", default-features = false, features = ["ring", "std"] }

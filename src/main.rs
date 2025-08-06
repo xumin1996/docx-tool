@@ -2,6 +2,7 @@ use base64::{Engine, engine::general_purpose};
 use bytes::Bytes;
 use clap::{Arg, ArgAction, Command};
 use docx_handlebars::render_handlebars;
+use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use serde_json::json;
