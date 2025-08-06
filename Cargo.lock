@@ -406,6 +406,7 @@ name = "docx-tool"
 version = "0.1.0"
 dependencies = [
  "base64",
+ "bytes",
  "clap",
  "docx-handlebars",
  "docx-rs",

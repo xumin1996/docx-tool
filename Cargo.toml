@@ -12,3 +12,4 @@ reqwest = {version="0.12.22", features = ["blocking"] }
 serde = "1.0.219"
 serde_json = "1.0.142"
 openssl = { version = "0.10", features = ["vendored"] }
+bytes = "1.10.1"

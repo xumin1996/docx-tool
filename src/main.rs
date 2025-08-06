@@ -1,4 +1,5 @@
 use base64::{Engine, engine::general_purpose};
+use bytes::Bytes;
 use clap::{Arg, ArgAction, Command};
 use docx_handlebars::render_handlebars;
 use serde::{Deserialize, Serialize};
@@ -44,13 +45,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // 解析swagger并生成文档
     if let Some(swagger_path) = matches.get_one::<String>("swagger") {
-        // todo 判断是网络文件还是本地文件// 创建同步客户端
-        let client = reqwest::blocking::Client::new();
-        // 发送GET请求并获取响应
-        let response = client.get(swagger_path).send()?;
+        let swagger_bytes = get_file_bytes(&swagger_path)?;
 
-        let sw: SwaggerDocument = serde_json::from_slice(response.bytes().unwrap().as_ref())?;
-        // println!("{:?}", sw);
+        let sw: SwaggerDocument = serde_json::from_slice(&swagger_bytes)?;
 
         // 生成docx的模板对象
         let mut apis: HashMap<String, Vec<DocxApiInfo>> = HashMap::new();
@@ -148,7 +145,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             name: sw.info.title.clone(),
             apis: apis,
         };
-        println!("{:?}", docx_project);
+        println!("{}", serde_json::to_string_pretty(&docx_project)?);
 
         // 渲染模板
         let result = render_handlebars(
@@ -180,6 +177,24 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     Ok(())
+}
+
+fn get_file_bytes(path: &str) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
+    // 判断是网络文件还是本地文件// 创建同步客户端
+    if path.starts_with("http") {
+        let client = reqwest::blocking::Client::new();
+        // 发送GET请求并获取响应
+        let response = client.get(path).send()?;
+
+        let result: Bytes = response.bytes()?;
+
+        Ok(result.into())
+    } else {
+        // 普通文件
+        let file_bytes = std::fs::read(path)?;
+
+        return Ok(file_bytes);
+    }
 }
 
 fn param_by_definitions(
