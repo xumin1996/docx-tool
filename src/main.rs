@@ -1,11 +1,9 @@
 use base64::{Engine, engine::general_purpose};
 use bytes::Bytes;
-use clap::{Arg, ArgAction, Command};
+use clap::{Arg, Command};
 use docx_handlebars::render_handlebars;
-use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use serde_json::json;
 use std::collections::HashMap;
 
 const SWAGGER_DOCX_MODEL: &[u8] = include_bytes!("../asset/swagger-model.docx");
@@ -217,13 +215,8 @@ fn image_to_base64(value: &mut Value) {
 fn get_file_bytes(path: &str) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
     // 判断是网络文件还是本地文件// 创建同步客户端
     if path.starts_with("http") {
-        let client = reqwest::blocking::Client::new();
-        // 发送GET请求并获取响应
-        let response = client.get(path).send()?;
-
-        let result: Bytes = response.bytes()?;
-
-        Ok(result.into())
+        let response = ureq::get(path).call()?.body_mut().read_to_vec()?;
+        Ok(response)
     } else {
         // 普通文件
         let file_bytes = std::fs::read(path)?;
