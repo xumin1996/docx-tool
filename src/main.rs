@@ -163,16 +163,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // 通用的模板
     if let Some(model_path) = matches.get_one::<String>("docx-model") {
-        if let Some(json_path) = matches.get_one::<String>("docx-model") {
-            let template_bytes = std::fs::read(model_path)?;
-            let json_bytes = std::fs::read(json_path)?;
+        if let Some(json_path) = matches.get_one::<String>("model-json") {
+            let template_bytes = get_file_bytes(&model_path)?;
+            let json_bytes = get_file_bytes(&json_path)?;
             let mut value: Value = serde_json::from_slice(&json_bytes)?;
 
             // 处理图片路径
             image_to_base64(&mut value);
 
             // 渲染模板
-        println!("{}", serde_json::to_string_pretty(&value)?);
+            // println!("{}", serde_json::to_string_pretty(&value)?);
             let result = render_handlebars(template_bytes, &value)?;
 
             // 保存
