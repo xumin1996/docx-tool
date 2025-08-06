@@ -142,6 +142,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 }
             }
         }
+
         let docx_project = DocxProjectInfo {
             name: sw.info.title.clone(),
             apis: apis,
@@ -165,7 +166,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         if let Some(json_path) = matches.get_one::<String>("docx-model") {
             let template_bytes = std::fs::read(model_path)?;
             let json_bytes = std::fs::read(json_path)?;
-            let value: Value = serde_json::from_slice(&json_bytes)?;
+            let mut value: Value = serde_json::from_slice(&json_bytes)?;
+
+            // 处理图片路径
+            image_to_base64(&mut value);
 
             // 渲染模板
             let result = render_handlebars(template_bytes, &value)?;
@@ -178,6 +182,30 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     Ok(())
+}
+
+fn image_to_base64(value: &mut Value) {
+    match value {
+        Value::Object(map) => {
+            for (k, v) in map.iter_mut() {
+                if k.ends_with(".image") {
+                    if let Value::String(map_value) = v {
+                        let content = get_file_bytes(map_value).unwrap_or(vec![]);
+                        *v = Value::String(general_purpose::STANDARD.encode(&content));
+                    }
+                }
+                if let Value::Object(map_value) = v {
+                    image_to_base64(v);
+                }
+            }
+        }
+        Value::Array(arr) => {
+            for ele in arr {
+                image_to_base64(ele);
+            }
+        }
+        _ => {}
+    }
 }
 
 fn get_file_bytes(path: &str) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
