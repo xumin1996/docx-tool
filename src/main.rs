@@ -200,9 +200,7 @@ fn image_to_base64(value: &mut Value) {
                         );
                     }
                 }
-                if let Value::Object(map_value) = v {
-                    image_to_base64(v);
-                }
+                image_to_base64(v);
             }
             // 添加
             map.extend(add_items);
