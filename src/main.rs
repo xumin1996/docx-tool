@@ -6,6 +6,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
 
+mod sql_parser;
+
 const SWAGGER_DOCX_MODEL: &[u8] = include_bytes!("../asset/swagger-model.docx");
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {

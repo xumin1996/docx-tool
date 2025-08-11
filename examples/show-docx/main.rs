@@ -11,7 +11,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // 读取docx
     let docx_content = std::fs::read("template/官方template.docx")?;
 
-    let docx = read_docx(&docx_content)?;
+    let docx: Docx = read_docx(&docx_content)?;
     let t = docx.document;
     println!("{:?}", t);
     
