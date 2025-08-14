@@ -24,7 +24,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
     let mut glue: Glue<DocxDb> = Glue::new(store);
 
-    let result = glue.execute("select * from doc_table;").await?;
+    let result = glue.execute("select hash, row_number, column_number, json_content, 1+1 as cal_number from tables").await?;
     for item in result {
         println!("{:?}", item);
     }

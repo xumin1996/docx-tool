@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use async_trait::async_trait;
-use docx_rs::{Document, DocumentChild, Docx, read_docx};
+use docx_rs::{Document, DocumentChild, Docx, TableChild, read_docx};
 use futures::stream::{self, StreamExt};
 use gluesql::{
     core::{
@@ -40,7 +40,7 @@ impl Store for DocxDb {
 
     async fn fetch_all_schemas(&self) -> Result<Vec<Schema>> {
         Result::Ok(vec![Schema {
-            table_name: "doc_table".to_string(),
+            table_name: "tables".to_string(),
             column_defs: Some(vec![
                 ColumnDef {
                     name: "hash".to_string(),
@@ -48,7 +48,23 @@ impl Store for DocxDb {
                     nullable: false,
                     default: None,
                     unique: None,
-                    comment: Some("table".to_string()),
+                    comment: Some("表格".to_string()),
+                },
+                ColumnDef {
+                    name: "row_number".to_string(),
+                    data_type: DataType::Int32,
+                    nullable: false,
+                    default: None,
+                    unique: None,
+                    comment: Some("行数".to_string()),
+                },
+                ColumnDef {
+                    name: "column_number".to_string(),
+                    data_type: DataType::Int32,
+                    nullable: false,
+                    default: None,
+                    unique: None,
+                    comment: Some("列数".to_string()),
                 },
                 ColumnDef {
                     name: "json_content".to_string(),
@@ -91,16 +107,38 @@ impl Store for DocxDb {
         let mut tables = Vec::new();
         for doc_child in &self.docx.children {
             if let DocumentChild::Table(t_box) = doc_child {
-                let table_json_str = serde_json::to_string(t_box).unwrap_or("".to_string());
+                let table_json_str = serde_json::to_string_pretty(t_box).unwrap_or("".to_string());
                 let mut hasher = Sha256::new();
                 hasher.update(table_json_str.as_bytes());
                 let result = hasher.finalize();
                 let hash_hex = hex::encode(result);
 
+                // 表格的行数和列数
+                let row_number = t_box.rows.len();
+                let column_number = t_box
+                    .rows
+                    .get(0)
+                    .map(|item| {
+                        if let TableChild::TableRow(table_row) = item {
+                            return table_row.cells.len();
+                        } else {
+                            return 0;
+                        }
+                    })
+                    .unwrap_or(0);
+
                 let key = Key::Str(hash_hex.clone());
                 let mut hm: HashMap<String, Value> = HashMap::new();
                 hm.insert("hash".to_string(), Value::Str(hash_hex.clone()));
-                hm.insert("json_content".to_string(), Value::Str(table_json_str.clone()));
+                hm.insert("row_number".to_string(), Value::I32(row_number as i32));
+                hm.insert(
+                    "column_number".to_string(),
+                    Value::I32(column_number as i32),
+                );
+                hm.insert(
+                    "json_content".to_string(),
+                    Value::Str(table_json_str.clone()),
+                );
                 let data_row = DataRow::Map(hm);
 
                 tables.push(Ok((key, data_row)));
