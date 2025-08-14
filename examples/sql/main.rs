@@ -13,7 +13,7 @@ use gluesql::{
     prelude::{DataType, Error, Key, Result},
 };
 
-#[tokio::main]
+#[async_std::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // 读取docx
     let docx_content = include_bytes!("../../asset/db-test.docx");
