@@ -17,11 +17,10 @@ rustls = { version = "0.23.31", default-features = false, features = [
 ] }
 ureq = "3.0.12"
 gluesql = "0.17.0"
-async-trait = "0.1.88"
 futures = "0.3.31"
 sha2 = "0.10.9"
 hex = "0.4.3"
-tokio = { version = "1.47.1", features = [
+tokio = { version = "1.47.1", default-features = false, features = [
     "sync",
     "macros",
     "io-util",
