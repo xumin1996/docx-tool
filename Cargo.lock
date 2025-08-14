@@ -1076,10 +1076,13 @@ dependencies = [
  "clap 4.5.42",
  "docx-handlebars",
  "docx-rs",
+ "futures",
  "gluesql",
+ "hex",
  "rustls 0.23.31",
  "serde",
  "serde_json",
+ "sha2",
  "ureq",
 ]
 
