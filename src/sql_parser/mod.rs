@@ -6,17 +6,19 @@ use futures::stream::{self, StreamExt};
 use gluesql::{
     core::{
         ast::ColumnDef,
-        data::Value,
-        data::{Schema, SchemaParseError},
+        data::{Schema, SchemaParseError, Value},
         error::FetchError,
-        store::{DataRow, RowIter, Store},
+        store::{
+            AlterTable, CustomFunction, CustomFunctionMut, DataRow, Index, IndexMut, Metadata,
+            RowIter, Store, StoreMut, Transaction,
+        },
     },
     prelude::{DataType, Error, Key, Result},
 };
 use sha2::{Digest, Sha256};
 
-struct DocxDb {
-    docx: Document,
+pub struct DocxDb {
+    pub docx: Document,
 }
 
 #[async_trait(?Send)]
@@ -38,15 +40,25 @@ impl Store for DocxDb {
 
     async fn fetch_all_schemas(&self) -> Result<Vec<Schema>> {
         Result::Ok(vec![Schema {
-            table_name: "table".to_string(),
-            column_defs: Some(vec![ColumnDef {
-                name: "hash".to_string(),
-                data_type: DataType::Text,
-                nullable: false,
-                default: None,
-                unique: None,
-                comment: Some("table".to_string()),
-            }]),
+            table_name: "doc_table".to_string(),
+            column_defs: Some(vec![
+                ColumnDef {
+                    name: "hash".to_string(),
+                    data_type: DataType::Text,
+                    nullable: false,
+                    default: None,
+                    unique: None,
+                    comment: Some("table".to_string()),
+                },
+                ColumnDef {
+                    name: "json_content".to_string(),
+                    data_type: DataType::Text,
+                    nullable: false,
+                    default: None,
+                    unique: None,
+                    comment: Some("表格的json形式".to_string()),
+                },
+            ]),
             indexes: vec![],
             engine: None,
             foreign_keys: vec![],
@@ -61,13 +73,11 @@ impl Store for DocxDb {
         }
 
         // 查找
-        if let Ok(rowIter) = self.scan_data(table_name).await {
-            while let row_op = rowIter.next().await {
-                if let Some(row_result) = row_op {
-                    if let Ok(row) = row_result {
-                        if row.0 == *key {
-                            return Ok(Some(row.1.clone()));
-                        }
+        if let Ok(mut rowIter) = self.scan_data(table_name).await {
+            while let Some(row_result) = rowIter.next().await {
+                if let Ok(row) = row_result {
+                    if row.0 == *key {
+                        return Ok(Some(row.1.clone()));
                     }
                 }
             }
@@ -76,7 +86,9 @@ impl Store for DocxDb {
         return Result::Ok(None);
     }
 
+    // todo 修改为stream格式
     async fn scan_data<'a>(&'a self, table_name: &str) -> Result<RowIter<'a>> {
+        let mut tables = Vec::new();
         for doc_child in &self.docx.children {
             if let DocumentChild::Table(t_box) = doc_child {
                 let table_json_str = serde_json::to_string(t_box).unwrap_or("".to_string());
@@ -88,11 +100,21 @@ impl Store for DocxDb {
                 let key = Key::Str(hash_hex.clone());
                 let mut hm: HashMap<String, Value> = HashMap::new();
                 hm.insert("hash".to_string(), Value::Str(hash_hex.clone()));
+                hm.insert("json_content".to_string(), Value::Str(table_json_str.clone()));
                 let data_row = DataRow::Map(hm);
 
-                return Ok(Box::pin(stream::iter(vec![Ok((key, data_row))])));
+                tables.push(Ok((key, data_row)));
             }
         }
-        Result::Err(Error::Fetch(FetchError::TableNotFound("".to_string())))
+        return Ok(Box::pin(stream::iter(tables)));
     }
 }
+
+impl Index for DocxDb {}
+impl Metadata for DocxDb {}
+impl CustomFunction for DocxDb {}
+impl StoreMut for DocxDb {}
+impl IndexMut for DocxDb {}
+impl AlterTable for DocxDb {}
+impl Transaction for DocxDb {}
+impl CustomFunctionMut for DocxDb {}
