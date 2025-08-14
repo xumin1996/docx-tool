@@ -21,4 +21,10 @@ async-trait = "0.1.88"
 futures = "0.3.31"
 sha2 = "0.10.9"
 hex = "0.4.3"
-async-std = { version = "1.13.1", features = ["attributes"] }
+tokio = { version = "1.47.1", features = [
+    "sync",
+    "macros",
+    "io-util",
+    "rt",
+    "time",
+] }
