@@ -13,7 +13,7 @@ use gluesql::{
     prelude::{DataType, Error, Key, Result},
 };
 
-#[async_std::main]
+#[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // 读取docx
     let docx_content = include_bytes!("../../asset/db-test.docx");
@@ -24,7 +24,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
     let mut glue: Glue<DocxDb> = Glue::new(store);
 
-    let result = glue.execute("select hash, row_number, column_number, json_content, 1+1 as cal_number from tables").await?;
+    let result = glue
+        .execute(
+            "select hash, row_number, column_number, json_content, 1+1 as cal_number from tables",
+        )
+        .await?;
     for item in result {
         println!("{:?}", item);
     }
