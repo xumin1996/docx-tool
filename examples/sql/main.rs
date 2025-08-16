@@ -18,20 +18,24 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // 读取docx
     let docx_content = include_bytes!("../../asset/接口.docx");
 
-    let docx: Docx = read_docx(docx_content)?;
+    let mut docx: Docx = read_docx(docx_content)?;
     let store = DocxDb {
-        docx: docx.document,
+        docx: &mut docx.document,
     };
     let mut glue: Glue<DocxDb> = Glue::new(store);
 
     let result = glue
-        .execute(
-            "select hash, row_number, column_number, json_content, 1+1 as cal_number from tables limit 1",
-        )
+        .execute("update tables set justification = 'center', width = 100, width_type = 'dxa'")
         .await?;
     for item in result {
         println!("{:?}", item);
     }
+
+    println!("{:?}", serde_json::to_string(&glue.storage.docx));
+
+    let path = std::path::Path::new("out.docx");
+    let file = std::fs::File::create(path)?;
+    docx.build().pack(file);
 
     Ok(())
 }
