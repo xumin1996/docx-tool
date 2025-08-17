@@ -20,11 +20,14 @@ use gluesql::{
 };
 use sha2::{Digest, Sha256};
 use std::mem;
+
 pub mod tables;
+pub mod cell;
 
 pub struct DocxDb<'a> {
     pub docx: &'a mut Document,
     tables: tables::Tables,
+    cell: cell::Cell,
 }
 
 impl<'a> DocxDb<'a> {
@@ -32,6 +35,7 @@ impl<'a> DocxDb<'a> {
         DocxDb {
             docx: docx,
             tables: tables::Tables,
+            cell: cell::Cell,
         }
     }
 }
@@ -56,6 +60,7 @@ impl<'b> Store for DocxDb<'b> {
     async fn fetch_all_schemas(&self) -> Result<Vec<Schema>> {
         let mut schemas: Vec<Schema> = Vec::new();
         schemas.extend(self.tables.fetch_all_schemas());
+        schemas.extend(self.cell.fetch_all_schemas());
         Result::Ok(schemas)
     }
 
@@ -63,6 +68,9 @@ impl<'b> Store for DocxDb<'b> {
         // 查找
         if self.tables.table_name() == table_name {
             return self.tables.fetch_data(self.docx, key).await;
+        }
+        if self.cell.table_name() == table_name {
+            return self.cell.fetch_data(self.docx, key).await;
         }
 
         return Result::Ok(None);
@@ -73,6 +81,9 @@ impl<'b> Store for DocxDb<'b> {
         // 查找
         if self.tables.table_name() == table_name {
             return self.tables.scan_data(self.docx).await;
+        }
+        if self.cell.table_name() == table_name {
+            return self.cell.scan_data(self.docx).await;
         }
 
         return Ok(Box::pin(stream::iter(vec![])));
@@ -107,6 +118,9 @@ impl<'b> StoreMut for DocxDb<'b> {
         // 查找
         if self.tables.table_name() == table_name {
             return self.tables.insert_data(self.docx, _rows).await;
+        }
+        if self.cell.table_name() == table_name {
+            return self.cell.insert_data(self.docx, _rows).await;
         }
 
         Ok(())

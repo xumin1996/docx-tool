@@ -2,8 +2,8 @@ use std::{collections::HashMap, str::FromStr};
 
 use async_trait::async_trait;
 use docx_rs::{
-    Document, DocumentChild, Docx, Justification, TableAlignmentType, TableChild, WidthType,
-    read_docx,
+    BorderType, Document, DocumentChild, Docx, Justification, TableAlignmentType, TableBorder,
+    TableBorderPosition, TableChild, WidthType, read_docx,
 };
 use futures::stream::{self, StreamExt};
 use gluesql::{
@@ -282,8 +282,8 @@ impl Tables {
                         .map(|item| Value::Str(item.to_string()))
                         .unwrap_or(Value::Null),
                 );
-                let data_row = DataRow::Map(hm);
 
+                let data_row = DataRow::Map(hm);
                 tables.push(Ok((key, data_row)));
             }
         }
@@ -356,6 +356,240 @@ impl Tables {
                                             let property = mem::take(&mut t_box.property);
                                             t_box.property = property.align(align);
                                         }
+                                    }
+                                }
+                                if kv.0 == "borders_top" {
+                                    if let Value::Str(border_value) = kv.1 {
+                                        // 使用json读取属性
+                                        let value: serde_json::Value =
+                                            serde_json::from_str(&border_value)
+                                                .unwrap_or(serde_json::Value::Null);
+
+                                        let mut table_border =
+                                            TableBorder::new(TableBorderPosition::Top);
+
+                                        // 颜色
+                                        if let Some(color) =
+                                            value.get("color").and_then(|item| item.as_str())
+                                        {
+                                            table_border = table_border.color(color);
+                                        }
+
+                                        // 线条宽度
+                                        if let Some(size) = value
+                                            .get("size")
+                                            .and_then(|item| item.as_u64())
+                                            .and_then(|item| Some(item as usize))
+                                        {
+                                            table_border = table_border.size(size);
+                                        }
+
+                                        // 线条类型
+                                        if let Some(border_type) = value
+                                            .get("borderType")
+                                            .and_then(|item| item.as_str())
+                                            .and_then(|item| BorderType::from_str(item).ok())
+                                        {
+                                            table_border = table_border.border_type(border_type);
+                                        }
+
+                                        let property = mem::take(&mut t_box.property);
+                                        t_box.property = property.set_border(table_border);
+                                    }
+                                }
+                                if kv.0 == "borders_left" {
+                                    if let Value::Str(border_value) = kv.1 {
+                                        // 使用json读取属性
+                                        let value: serde_json::Value =
+                                            serde_json::from_str(&border_value)
+                                                .unwrap_or(serde_json::Value::Null);
+
+                                        let mut table_border =
+                                            TableBorder::new(TableBorderPosition::Left);
+
+                                        // 颜色
+                                        if let Some(color) =
+                                            value.get("color").and_then(|item| item.as_str())
+                                        {
+                                            table_border = table_border.color(color);
+                                        }
+
+                                        // 线条宽度
+                                        if let Some(size) = value
+                                            .get("size")
+                                            .and_then(|item| item.as_u64())
+                                            .and_then(|item| Some(item as usize))
+                                        {
+                                            table_border = table_border.size(size);
+                                        }
+
+                                        // 线条类型
+                                        if let Some(border_type) = value
+                                            .get("borderType")
+                                            .and_then(|item| item.as_str())
+                                            .and_then(|item| BorderType::from_str(item).ok())
+                                        {
+                                            table_border = table_border.border_type(border_type);
+                                        }
+
+                                        let property = mem::take(&mut t_box.property);
+                                        t_box.property = property.set_border(table_border);
+                                    }
+                                }
+                                if kv.0 == "borders_bottom" {
+                                    if let Value::Str(border_value) = kv.1 {
+                                        // 使用json读取属性
+                                        let value: serde_json::Value =
+                                            serde_json::from_str(&border_value)
+                                                .unwrap_or(serde_json::Value::Null);
+
+                                        let mut table_border =
+                                            TableBorder::new(TableBorderPosition::Bottom);
+
+                                        // 颜色
+                                        if let Some(color) =
+                                            value.get("color").and_then(|item| item.as_str())
+                                        {
+                                            table_border = table_border.color(color);
+                                        }
+
+                                        // 线条宽度
+                                        if let Some(size) = value
+                                            .get("size")
+                                            .and_then(|item| item.as_u64())
+                                            .and_then(|item| Some(item as usize))
+                                        {
+                                            table_border = table_border.size(size);
+                                        }
+
+                                        // 线条类型
+                                        if let Some(border_type) = value
+                                            .get("borderType")
+                                            .and_then(|item| item.as_str())
+                                            .and_then(|item| BorderType::from_str(item).ok())
+                                        {
+                                            table_border = table_border.border_type(border_type);
+                                        }
+
+                                        let property = mem::take(&mut t_box.property);
+                                        t_box.property = property.set_border(table_border);
+                                    }
+                                }
+                                if kv.0 == "borders_right" {
+                                    if let Value::Str(border_value) = kv.1 {
+                                        // 使用json读取属性
+                                        let value: serde_json::Value =
+                                            serde_json::from_str(&border_value)
+                                                .unwrap_or(serde_json::Value::Null);
+
+                                        let mut table_border =
+                                            TableBorder::new(TableBorderPosition::Right);
+
+                                        // 颜色
+                                        if let Some(color) =
+                                            value.get("color").and_then(|item| item.as_str())
+                                        {
+                                            table_border = table_border.color(color);
+                                        }
+
+                                        // 线条宽度
+                                        if let Some(size) = value
+                                            .get("size")
+                                            .and_then(|item| item.as_u64())
+                                            .and_then(|item| Some(item as usize))
+                                        {
+                                            table_border = table_border.size(size);
+                                        }
+
+                                        // 线条类型
+                                        if let Some(border_type) = value
+                                            .get("borderType")
+                                            .and_then(|item| item.as_str())
+                                            .and_then(|item| BorderType::from_str(item).ok())
+                                        {
+                                            table_border = table_border.border_type(border_type);
+                                        }
+
+                                        let property = mem::take(&mut t_box.property);
+                                        t_box.property = property.set_border(table_border);
+                                    }
+                                }
+                                if kv.0 == "borders_inside_h" {
+                                    if let Value::Str(border_value) = kv.1 {
+                                        // 使用json读取属性
+                                        let value: serde_json::Value =
+                                            serde_json::from_str(&border_value)
+                                                .unwrap_or(serde_json::Value::Null);
+
+                                        let mut table_border =
+                                            TableBorder::new(TableBorderPosition::InsideH);
+
+                                        // 颜色
+                                        if let Some(color) =
+                                            value.get("color").and_then(|item| item.as_str())
+                                        {
+                                            table_border = table_border.color(color);
+                                        }
+
+                                        // 线条宽度
+                                        if let Some(size) = value
+                                            .get("size")
+                                            .and_then(|item| item.as_u64())
+                                            .and_then(|item| Some(item as usize))
+                                        {
+                                            table_border = table_border.size(size);
+                                        }
+
+                                        // 线条类型
+                                        if let Some(border_type) = value
+                                            .get("borderType")
+                                            .and_then(|item| item.as_str())
+                                            .and_then(|item| BorderType::from_str(item).ok())
+                                        {
+                                            table_border = table_border.border_type(border_type);
+                                        }
+
+                                        let property = mem::take(&mut t_box.property);
+                                        t_box.property = property.set_border(table_border);
+                                    }
+                                }
+                                if kv.0 == "borders_inside_v" {
+                                    if let Value::Str(border_value) = kv.1 {
+                                        // 使用json读取属性
+                                        let value: serde_json::Value =
+                                            serde_json::from_str(&border_value)
+                                                .unwrap_or(serde_json::Value::Null);
+
+                                        let mut table_border =
+                                            TableBorder::new(TableBorderPosition::InsideV);
+
+                                        // 颜色
+                                        if let Some(color) =
+                                            value.get("color").and_then(|item| item.as_str())
+                                        {
+                                            table_border = table_border.color(color);
+                                        }
+
+                                        // 线条宽度
+                                        if let Some(size) = value
+                                            .get("size")
+                                            .and_then(|item| item.as_u64())
+                                            .and_then(|item| Some(item as usize))
+                                        {
+                                            table_border = table_border.size(size);
+                                        }
+
+                                        // 线条类型
+                                        if let Some(border_type) = value
+                                            .get("borderType")
+                                            .and_then(|item| item.as_str())
+                                            .and_then(|item| BorderType::from_str(item).ok())
+                                        {
+                                            table_border = table_border.border_type(border_type);
+                                        }
+
+                                        let property = mem::take(&mut t_box.property);
+                                        t_box.property = property.set_border(table_border);
                                     }
                                 }
                             }
