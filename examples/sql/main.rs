@@ -25,8 +25,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // let result = glue
     //     .execute("select tables.hash,  cell.hash, cell.table_hash, cell.width, cell.width_type, cell.content from cell left join tables on tables.hash = cell.table_hash")
     //     .await?;
+    // let result = glue
+    //     .execute("update tables set borders_top='{\"size\":50, \"color\":\"ff0000\"}'")
+    //     .await?;
     let result = glue
-        .execute("update tables set borders_top='{\"size\":50, \"color\":\"ff0000\"}'")
+        .execute("update cell set borders_top='{\"size\":50, \"color\":\"ff0000\"}'")
         .await?;
     for item in result {
         println!("{:?}", item);

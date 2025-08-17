@@ -2,8 +2,9 @@ use std::{collections::HashMap, iter, str::FromStr};
 
 use async_trait::async_trait;
 use docx_rs::{
-    Document, DocumentChild, Docx, Justification, Paragraph, ParagraphChild, RunChild,
-    TableAlignmentType, TableCellContent, TableChild, TableRowChild, WidthType, read_docx,
+    BorderType, Document, DocumentChild, Docx, Justification, Paragraph, ParagraphChild, RunChild,
+    TableAlignmentType, TableCellBorder, TableCellBorderPosition, TableCellContent,
+    TableCellProperty, TableChild, TableRowChild, WidthType, border_position, read_docx,
 };
 use futures::stream::{self, StreamExt};
 use gluesql::{
@@ -328,7 +329,7 @@ impl Cell {
                                                 if let Value::U32(width) = kv.1 {
                                                     // 使用json读取属性
                                                     let property_value: serde_json::Value =
-                                                        serde_json::to_value(&t_box.property)
+                                                        serde_json::to_value(&table_cell.property)
                                                             .unwrap_or(serde_json::Value::Null);
                                                     let pre_width = property_value
                                                         .get("width")
@@ -355,7 +356,7 @@ impl Cell {
                                                 if let Value::Str(width_type) = kv.1 {
                                                     // 使用json读取属性
                                                     let property_value: serde_json::Value =
-                                                        serde_json::to_value(&t_box.property)
+                                                        serde_json::to_value(&table_cell.property)
                                                             .unwrap_or(serde_json::Value::Null);
                                                     let pre_width = property_value
                                                         .get("width")
@@ -368,20 +369,76 @@ impl Cell {
                                                             .ok()
                                                             .unwrap_or(WidthType::Auto);
 
-                                                    let property = mem::take(&mut t_box.property);
-                                                    t_box.property =
+                                                    let property =
+                                                        mem::take(&mut table_cell.property);
+                                                    table_cell.property =
                                                         property.width(pre_width, pre_width_type);
                                                 }
                                             }
-                                            if kv.0 == "justification" {
-                                                if let Value::Str(prop_value) = kv.1 {
-                                                    if let Ok(align) =
-                                                        TableAlignmentType::from_str(prop_value)
-                                                    {
-                                                        let property =
-                                                            mem::take(&mut t_box.property);
-                                                        t_box.property = property.align(align);
-                                                    }
+                                            if kv.0 == "borders_top" {
+                                                if let Value::Str(border_value) = kv.1 {
+                                                    let property =
+                                                        mem::take(&mut table_cell.property);
+                                                    table_cell.property = self.set_border(
+                                                        property,
+                                                        border_value,
+                                                        TableCellBorderPosition::Top,
+                                                    );
+                                                }
+                                            }
+                                            if kv.0 == "borders_left" {
+                                                if let Value::Str(border_value) = kv.1 {
+                                                    let property =
+                                                        mem::take(&mut table_cell.property);
+                                                    table_cell.property = self.set_border(
+                                                        property,
+                                                        border_value,
+                                                        TableCellBorderPosition::Left,
+                                                    );
+                                                }
+                                            }
+                                            if kv.0 == "borders_bottom" {
+                                                if let Value::Str(border_value) = kv.1 {
+                                                    let property =
+                                                        mem::take(&mut table_cell.property);
+                                                    table_cell.property = self.set_border(
+                                                        property,
+                                                        border_value,
+                                                        TableCellBorderPosition::Bottom,
+                                                    );
+                                                }
+                                            }
+                                            if kv.0 == "borders_right" {
+                                                if let Value::Str(border_value) = kv.1 {
+                                                    let property =
+                                                        mem::take(&mut table_cell.property);
+                                                    table_cell.property = self.set_border(
+                                                        property,
+                                                        border_value,
+                                                        TableCellBorderPosition::Right,
+                                                    );
+                                                }
+                                            }
+                                            if kv.0 == "borders_inside_h" {
+                                                if let Value::Str(border_value) = kv.1 {
+                                                    let property =
+                                                        mem::take(&mut table_cell.property);
+                                                    table_cell.property = self.set_border(
+                                                        property,
+                                                        border_value,
+                                                        TableCellBorderPosition::InsideH,
+                                                    );
+                                                }
+                                            }
+                                            if kv.0 == "borders_inside_v" {
+                                                if let Value::Str(border_value) = kv.1 {
+                                                    let property =
+                                                        mem::take(&mut table_cell.property);
+                                                    table_cell.property = self.set_border(
+                                                        property,
+                                                        border_value,
+                                                        TableCellBorderPosition::InsideV,
+                                                    );
                                                 }
                                             }
                                         }
@@ -395,5 +452,43 @@ impl Cell {
         }
 
         Ok(())
+    }
+
+    fn set_border(
+        &self,
+        property: TableCellProperty,
+        border_value: &String,
+        border_position: TableCellBorderPosition,
+    ) -> TableCellProperty {
+        // 使用json读取属性
+        let value: serde_json::Value =
+            serde_json::from_str(&border_value).unwrap_or(serde_json::Value::Null);
+
+        let mut table_border = TableCellBorder::new(border_position);
+
+        // 颜色
+        if let Some(color) = value.get("color").and_then(|item| item.as_str()) {
+            table_border = table_border.color(color);
+        }
+
+        // 线条宽度
+        if let Some(size) = value
+            .get("size")
+            .and_then(|item| item.as_u64())
+            .and_then(|item| Some(item as usize))
+        {
+            table_border = table_border.size(size);
+        }
+
+        // 线条类型
+        if let Some(border_type) = value
+            .get("borderType")
+            .and_then(|item| item.as_str())
+            .and_then(|item| BorderType::from_str(item).ok())
+        {
+            table_border = table_border.border_type(border_type);
+        }
+
+        return property.set_border(table_border);
     }
 }
