@@ -19,9 +19,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let docx_content = include_bytes!("../../asset/接口.docx");
 
     let mut docx: Docx = read_docx(docx_content)?;
-    let store = DocxDb {
-        docx: &mut docx.document,
-    };
+    let store = DocxDb::new(&mut docx.document);
     let mut glue: Glue<DocxDb> = Glue::new(store);
 
     let result = glue
