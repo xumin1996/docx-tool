@@ -16,7 +16,7 @@ use gluesql::{
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // 读取docx
-    let docx_content = include_bytes!("../../asset/接口.docx");
+    let docx_content = include_bytes!("/home/x/Desktop/常用sh/工具/docx-tool/output.docx");
 
     let mut docx: Docx = read_docx(docx_content)?;
     let store = DocxDb::new(&mut docx.document);
