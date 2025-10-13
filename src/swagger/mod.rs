@@ -163,34 +163,44 @@ fn response_by_definitions<'a>(
                 for ele in hm {
                     let name = ele.0;
                     let prop = ele.1;
-                    let data_type = prop.type_.clone();
-
-                    if "array" == data_type {
-                        // 对象列表
-                        if let Some(schema) = &prop.items {
-                            if let SchemaRef::Ref { ref_, original_ref } = schema {
-                                if let Some(original_ref_value) = original_ref {
-                                    let mut pst = response_by_definitions(
-                                        original_ref_value,
-                                        &definitions,
-                                        used_name,
-                                    );
-                                    // 在每个参数前面加上"[]."
-                                    pst.iter_mut().for_each(|item| {
-                                        item.name = format!("{}.[].{}", name, item.name)
-                                    });
-                                    ps.extend(pst);
+                    let type_ = &prop.type_;
+                    if let Some(type_value) = type_ {
+                        let data_type = type_value.clone();
+                        if "array" == data_type {
+                            // 列表
+                            if let Some(schema) = &prop.items {
+                                if let SchemaRef::Ref { ref_, original_ref } = schema {
+                                    if let Some(original_ref_value) = original_ref {
+                                        let mut pst = response_by_definitions(
+                                            original_ref_value,
+                                            &definitions,
+                                            used_name,
+                                        );
+                                        // 在每个参数前面加上"[]."
+                                        pst.iter_mut().for_each(|item| {
+                                            item.name = format!("{}.[].{}", name, item.name)
+                                        });
+                                        ps.extend(pst);
+                                    }
                                 }
                             }
+                        } else {
+                            // 属性
+                            let spi = DocxReturnParamInfo {
+                                name: name.clone(),
+                                data_type: data_type,
+                                desc: prop.description.clone().unwrap_or("".to_string()),
+                            };
+                            ps.push(spi);
                         }
-                    } else {
-                        // 属性
-                        let spi = DocxReturnParamInfo {
-                            name: name.clone(),
-                            data_type: data_type,
-                            desc: prop.description.clone().unwrap_or("".to_string()),
-                        };
-                        ps.push(spi);
+                    } else if let Some(original_ref_value) = &prop.original_ref {
+                        // 对象
+                        let mut pst =
+                            response_by_definitions(original_ref_value, &definitions, used_name);
+                        // 在每个参数前面加上"[]."
+                        pst.iter_mut()
+                            .for_each(|item| item.name = format!("{}.[].{}", name, item.name));
+                        ps.extend(pst);
                     }
                 }
             }
@@ -219,33 +229,48 @@ fn fill_value_by_definitions<'a>(
                 for ele in hm {
                     let name = ele.0;
                     let prop = ele.1;
-                    let data_type = prop.type_.clone();
-
-                    if "array" == data_type {
-                        // 对象列表
-                        let mut value_item = Value::Object(Map::new());
-                        if let Some(schema) = &prop.items {
-                            if let SchemaRef::Ref { ref_, original_ref } = schema {
-                                if let Some(original_ref_value) = original_ref {
-                                    let mut pst = fill_value_by_definitions(
-                                        original_ref_value,
-                                        &mut value_item,
-                                        &definitions,
-                                        used_name,
-                                    );
+                    let type_ = &prop.type_;
+                    if let Some(type_value) = type_ {
+                        let data_type = type_value.clone();
+                        if "array" == data_type {
+                            // 列表
+                            let mut value_item = Value::Object(Map::new());
+                            if let Some(schema) = &prop.items {
+                                if let SchemaRef::Ref { ref_, original_ref } = schema {
+                                    if let Some(original_ref_value) = original_ref {
+                                        fill_value_by_definitions(
+                                            original_ref_value,
+                                            &mut value_item,
+                                            &definitions,
+                                            used_name,
+                                        );
+                                    }
                                 }
                             }
+                            value
+                                .as_object_mut()
+                                .unwrap()
+                                .insert(name.to_string(), Value::Array(vec![value_item]));
+                        } else {
+                            // 属性
+                            value
+                                .as_object_mut()
+                                .unwrap()
+                                .insert(name.to_string(), gen_example_value(&name, &data_type));
                         }
+                    } else if let Some(original_ref_value) = &prop.original_ref {
+                        // 对象
+                        let mut value_item = Value::Object(Map::new());
+                        fill_value_by_definitions(
+                            original_ref_value,
+                            &mut value_item,
+                            &definitions,
+                            used_name,
+                        );
                         value
                             .as_object_mut()
                             .unwrap()
-                            .insert(name.to_string(), Value::Array(vec![value_item]));
-                    } else {
-                        // 属性
-                        value
-                            .as_object_mut()
-                            .unwrap()
-                            .insert(name.to_string(), gen_example_value(&name, &data_type));
+                            .insert(name.to_string(), value_item);
                     }
                 }
             }
@@ -266,18 +291,21 @@ fn param_by_definitions(
                 for ele in hm {
                     let name = ele.0;
                     let prop = ele.1;
-                    let spi = DocxParamInfo {
-                        name: name.clone(),
-                        data_type: prop.type_.clone(),
-                        param_type: "".to_string(),
-                        required: if require.contains(name) {
-                            "Y".to_string()
-                        } else {
-                            "N".to_string()
-                        },
-                        desc: prop.description.clone().unwrap_or("".to_string()),
-                    };
-                    ps.push(spi);
+                    let type_ = &prop.type_;
+                    if let Some(type_value) = type_ {
+                        let spi = DocxParamInfo {
+                            name: name.clone(),
+                            data_type: type_value.clone(),
+                            param_type: "".to_string(),
+                            required: if require.contains(name) {
+                                "Y".to_string()
+                            } else {
+                                "N".to_string()
+                            },
+                            desc: prop.description.clone().unwrap_or("".to_string()),
+                        };
+                        ps.push(spi);
+                    }
                 }
             }
         }
@@ -382,10 +410,14 @@ pub struct Schema {
 #[serde(rename_all = "camelCase")]
 pub struct Property {
     #[serde(rename = "type")]
-    pub type_: String,
+    pub type_: Option<String>,
     pub description: Option<String>,
     pub format: Option<String>,
     pub items: Option<SchemaRef>,
+    #[serde(rename = "$ref")]
+    pub ref_: Option<String>,
+    #[serde(rename = "originalRef")]
+    pub original_ref: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
