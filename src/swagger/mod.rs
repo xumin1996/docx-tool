@@ -1,6 +1,6 @@
 use docx_handlebars::render_handlebars;
 use serde::{Deserialize, Serialize};
-use serde_json::{Map, Value};
+use serde_json::{Map, Number, Value};
 use std::{
     cell::Ref,
     collections::{HashMap, HashSet},
@@ -245,7 +245,7 @@ fn fill_value_by_definitions<'a>(
                         value
                             .as_object_mut()
                             .unwrap()
-                            .insert(name.to_string(), Value::String("".to_string()));
+                            .insert(name.to_string(), gen_example_value(&name, &data_type));
                     }
                 }
             }
@@ -284,6 +284,18 @@ fn param_by_definitions(
     }
 
     return ps;
+}
+
+// 生成测试数据
+fn gen_example_value(name: &String, value_type: &String) -> Value {
+    if "integer" == value_type {
+        return Value::Number(Number::from(1u32));
+    }
+    if "string" == value_type {
+        return Value::String("string".to_string());
+    }
+
+    return Value::Null;
 }
 
 #[derive(Debug, Serialize, Deserialize)]
