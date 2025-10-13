@@ -1,7 +1,10 @@
 use docx_handlebars::render_handlebars;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use std::collections::HashMap;
+use std::{
+    cell::Ref,
+    collections::{HashMap, HashSet},
+};
 
 const SWAGGER_DOCX_MODEL: &[u8] = include_bytes!("../../asset/template/swagger-model.docx");
 
@@ -74,6 +77,7 @@ pub fn parse_swagger_and_gen_docx(
                         let mut ps = response_by_definitions(
                             original_ref.as_ref().unwrap_or(&"".to_string()),
                             &sw.definitions,
+                            &mut HashSet::<&String>::new(),
                         );
                         // 在每个参数前面加上"body."
                         ps.iter_mut()
@@ -122,10 +126,17 @@ pub fn parse_swagger_and_gen_docx(
     return Ok(());
 }
 
-fn response_by_definitions(
-    original_ref: &String,
-    definitions: &HashMap<String, Definition>,
+fn response_by_definitions<'a>(
+    original_ref: &'a String,
+    definitions: &'a HashMap<String, Definition>,
+    used_name: &mut HashSet<&'a String>,
 ) -> Vec<DocxReturnParamInfo> {
+    // 检查是否循环引用
+    if used_name.contains(original_ref) {
+        return vec![];
+    }
+    used_name.insert(original_ref);
+
     let mut ps: Vec<DocxReturnParamInfo> = vec![];
     if let Some(definition) = definitions.get(original_ref) {
         if let Definition::Object(scheme) = definition {
@@ -133,12 +144,35 @@ fn response_by_definitions(
                 for ele in hm {
                     let name = ele.0;
                     let prop = ele.1;
-                    let spi = DocxReturnParamInfo {
-                        name: name.clone(),
-                        data_type: prop.type_.clone(),
-                        desc: prop.description.clone().unwrap_or("".to_string()),
-                    };
-                    ps.push(spi);
+                    let data_type = prop.type_.clone();
+
+                    if "array" == data_type {
+                        // 对象列表
+                        if let Some(schema) = &prop.items {
+                            if let SchemaRef::Ref { ref_, original_ref } = schema {
+                                if let Some(original_ref_value) = original_ref {
+                                    let mut pst = response_by_definitions(
+                                        original_ref_value,
+                                        &definitions,
+                                        used_name,
+                                    );
+                                    // 在每个参数前面加上"[]."
+                                    pst.iter_mut().for_each(|item| {
+                                        item.name = format!("{}.[].{}", name, item.name)
+                                    });
+                                    ps.extend(pst);
+                                }
+                            }
+                        }
+                    } else {
+                        // 属性
+                        let spi = DocxReturnParamInfo {
+                            name: name.clone(),
+                            data_type: data_type,
+                            desc: prop.description.clone().unwrap_or("".to_string()),
+                        };
+                        ps.push(spi);
+                    }
                 }
             }
         }
@@ -267,6 +301,7 @@ pub struct Property {
     pub type_: String,
     pub description: Option<String>,
     pub format: Option<String>,
+    pub items: Option<SchemaRef>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
