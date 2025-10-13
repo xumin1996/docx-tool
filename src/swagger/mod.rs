@@ -1,6 +1,6 @@
 use docx_handlebars::render_handlebars;
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
+use serde_json::{Map, Value};
 use std::{
     cell::Ref,
     collections::{HashMap, HashSet},
@@ -87,6 +87,22 @@ pub fn parse_swagger_and_gen_docx(
                 }
             }
 
+            // 示例
+            let mut example_object = serde_json::Value::Object(Map::new());
+            if let Some(response) = &operation.responses.get("200") {
+                let description = response.description.clone();
+                if let Some(schema) = &response.schema {
+                    if let SchemaRef::Ref { ref_, original_ref } = schema {
+                        fill_value_by_definitions(
+                            original_ref.as_ref().unwrap_or(&"".to_string()),
+                            &mut example_object,
+                            &sw.definitions,
+                            &mut HashSet::<&String>::new(),
+                        );
+                    }
+                }
+            }
+
             let doc_api_info = DocxApiInfo {
                 name: operation.summary.clone().unwrap_or("".to_string()),
                 desc: operation.summary.clone().unwrap_or("".to_string()),
@@ -97,6 +113,8 @@ pub fn parse_swagger_and_gen_docx(
                 query_params: query_params,
                 status_codes: status_codes,
                 return_params: return_params,
+                return_params_example: serde_json::to_string(&example_object)
+                    .unwrap_or("".to_string()),
             };
 
             // tags
@@ -126,6 +144,7 @@ pub fn parse_swagger_and_gen_docx(
     return Ok(());
 }
 
+// 获得返回属性（嵌套获取）
 fn response_by_definitions<'a>(
     original_ref: &'a String,
     definitions: &'a HashMap<String, Definition>,
@@ -179,6 +198,59 @@ fn response_by_definitions<'a>(
     }
 
     return ps;
+}
+
+// 属性填充Value
+fn fill_value_by_definitions<'a>(
+    original_ref: &'a String,
+    value: &mut Value,
+    definitions: &'a HashMap<String, Definition>,
+    used_name: &mut HashSet<&'a String>,
+) {
+    // 检查是否循环引用
+    if used_name.contains(original_ref) {
+        return;
+    }
+    used_name.insert(original_ref);
+
+    if let Some(definition) = definitions.get(original_ref) {
+        if let Definition::Object(scheme) = definition {
+            if let Some(hm) = &scheme.properties {
+                for ele in hm {
+                    let name = ele.0;
+                    let prop = ele.1;
+                    let data_type = prop.type_.clone();
+
+                    if "array" == data_type {
+                        // 对象列表
+                        let mut value_item = Value::Object(Map::new());
+                        if let Some(schema) = &prop.items {
+                            if let SchemaRef::Ref { ref_, original_ref } = schema {
+                                if let Some(original_ref_value) = original_ref {
+                                    let mut pst = fill_value_by_definitions(
+                                        original_ref_value,
+                                        &mut value_item,
+                                        &definitions,
+                                        used_name,
+                                    );
+                                }
+                            }
+                        }
+                        value
+                            .as_object_mut()
+                            .unwrap()
+                            .insert(name.to_string(), Value::Array(vec![value_item]));
+                    } else {
+                        // 属性
+                        value
+                            .as_object_mut()
+                            .unwrap()
+                            .insert(name.to_string(), Value::String("".to_string()));
+                    }
+                }
+            }
+        }
+    }
 }
 
 fn param_by_definitions(
@@ -358,6 +430,9 @@ pub struct DocxApiInfo {
 
     // 返回参数列表
     pub return_params: Vec<DocxReturnParamInfo>,
+
+    // 返回参数示例
+    pub return_params_example: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
