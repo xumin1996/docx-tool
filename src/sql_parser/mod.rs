@@ -2,8 +2,8 @@ use std::{collections::HashMap, str::FromStr};
 
 use async_trait::async_trait;
 use docx_rs::{
-    Document, DocumentChild, Docx, Justification, TableAlignmentType, TableChild, WidthType,
-    read_docx,
+    BuildXML, Document, DocumentChild, Docx, Justification, TableAlignmentType, TableChild,
+    WidthType, read_docx,
 };
 use futures::stream::{self, StreamExt};
 use gluesql::{
@@ -21,8 +21,8 @@ use gluesql::{
 use sha2::{Digest, Sha256};
 use std::mem;
 
-pub mod tables;
 pub mod cell;
+pub mod tables;
 
 pub struct DocxDb<'a> {
     pub docx: &'a mut Document,
@@ -136,3 +136,12 @@ impl<'b> IndexMut for DocxDb<'b> {}
 impl<'b> AlterTable for DocxDb<'b> {}
 impl<'b> Transaction for DocxDb<'b> {}
 impl<'b> CustomFunctionMut for DocxDb<'b> {}
+
+#[test]
+pub fn to_xml() {
+    // 读取docx
+    let docx_content = include_bytes!("../../asset/测试.docx");
+    let mut docx: Docx = read_docx(docx_content).unwrap();
+    let docx_json = docx.json();
+    println!("{docx_json}");
+}
