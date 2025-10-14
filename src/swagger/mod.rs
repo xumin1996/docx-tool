@@ -319,6 +319,9 @@ fn gen_example_value(name: &String, value_type: &String) -> Value {
     if "integer" == value_type {
         return Value::Number(Number::from(1u32));
     }
+    if "boolean" == value_type {
+        return Value::Bool(false);
+    }
     if "string" == value_type {
         // 日期
         if name.to_lowercase().contains("time") || name.to_lowercase().contains("date") {
