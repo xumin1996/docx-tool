@@ -199,7 +199,7 @@ fn response_by_definitions<'a>(
                             response_by_definitions(original_ref_value, &definitions, used_name);
                         // 在每个参数前面加上"[]."
                         pst.iter_mut()
-                            .for_each(|item| item.name = format!("{}.[].{}", name, item.name));
+                            .for_each(|item| item.name = format!("{}.{}", name, item.name));
                         ps.extend(pst);
                     }
                 }
@@ -320,6 +320,10 @@ fn gen_example_value(name: &String, value_type: &String) -> Value {
         return Value::Number(Number::from(1u32));
     }
     if "string" == value_type {
+        // 日期
+        if name.to_lowercase().contains("time") || name.to_lowercase().contains("date") {
+            return Value::String("2025-10-13 20:26:09".to_string());
+        }
         return Value::String("string".to_string());
     }
 
