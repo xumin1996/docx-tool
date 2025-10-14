@@ -572,6 +572,7 @@ dependencies = [
  "docx-rs",
  "futures",
  "gluesql",
+ "handlebars",
  "hex",
  "rustls",
  "serde",
