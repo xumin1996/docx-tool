@@ -253,10 +253,10 @@ fn fill_value_by_definitions<'a>(
                                 .insert(name.to_string(), Value::Array(vec![value_item]));
                         } else {
                             // 属性
-                            value
-                                .as_object_mut()
-                                .unwrap()
-                                .insert(name.to_string(), gen_example_value(&name, &data_type));
+                            value.as_object_mut().unwrap().insert(
+                                name.to_string(),
+                                gen_example_value(&name, &data_type, &prop.example),
+                            );
                         }
                     } else if let Some(original_ref_value) = &prop.original_ref {
                         // 对象
@@ -315,7 +315,13 @@ fn param_by_definitions(
 }
 
 // 生成测试数据
-fn gen_example_value(name: &String, value_type: &String) -> Value {
+fn gen_example_value(name: &String, value_type: &String, example: &Option<Value>) -> Value {
+    // 有示例数据则使用示例数据
+    if let Some(example_value) = example {
+        // return Value::String(example_value.clone());
+        return example_value.clone();
+    }
+
     if "integer" == value_type {
         return Value::Number(Number::from(1u32));
     }
@@ -420,6 +426,7 @@ pub struct Property {
     pub type_: Option<String>,
     pub description: Option<String>,
     pub format: Option<String>,
+    pub example: Option<Value>,
     pub items: Option<SchemaRef>,
     #[serde(rename = "$ref")]
     pub ref_: Option<String>,
