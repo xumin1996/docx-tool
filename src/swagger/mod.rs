@@ -182,6 +182,24 @@ fn response_by_definitions<'a>(
                                         });
                                         ps.extend(pst);
                                     }
+                                } else if let SchemaRef::Primitives {
+                                    type_,
+                                    description,
+                                    format,
+                                } = schema
+                                {
+                                    // 属性
+                                    let spi = DocxReturnParamInfo {
+                                        // todo 优化
+                                        name: format!(
+                                            "{}.[].{}",
+                                            name,
+                                            format.clone().unwrap_or("".to_string())
+                                        ),
+                                        data_type: type_.clone().unwrap_or("".to_string()),
+                                        desc: prop.description.clone().unwrap_or("".to_string()),
+                                    };
+                                    ps.push(spi);
                                 }
                             }
                         } else {
@@ -234,23 +252,35 @@ fn fill_value_by_definitions<'a>(
                         let data_type = type_value.clone();
                         if "array" == data_type {
                             // 列表
-                            let mut value_item = Value::Object(Map::new());
                             if let Some(schema) = &prop.items {
                                 if let SchemaRef::Ref { ref_, original_ref } = schema {
                                     if let Some(original_ref_value) = original_ref {
+                                        let mut value_item = Value::Object(Map::new());
                                         fill_value_by_definitions(
                                             original_ref_value,
                                             &mut value_item,
                                             &definitions,
                                             used_name,
                                         );
+                                        value.as_object_mut().unwrap().insert(
+                                            name.to_string(),
+                                            Value::Array(vec![value_item]),
+                                        );
                                     }
+                                } else if let SchemaRef::Primitives {
+                                    type_,
+                                    description,
+                                    format,
+                                } = schema
+                                {
+                                    // 属性
+                                    // todo 空数组
+                                    value
+                                        .as_object_mut()
+                                        .unwrap()
+                                        .insert(name.to_string(), Value::Array(vec![]));
                                 }
                             }
-                            value
-                                .as_object_mut()
-                                .unwrap()
-                                .insert(name.to_string(), Value::Array(vec![value_item]));
                         } else {
                             // 属性
                             value.as_object_mut().unwrap().insert(
@@ -400,11 +430,19 @@ pub struct Response {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum SchemaRef {
+    // 引用对象
     Ref {
         #[serde(rename = "$ref")]
         ref_: String,
         #[serde(rename = "originalRef")]
         original_ref: Option<String>,
+    },
+    // 原始类型 int long
+    Primitives {
+        #[serde(rename = "type")]
+        type_: Option<String>,
+        description: Option<String>,
+        format: Option<String>,
     },
     Object(Schema),
 }
