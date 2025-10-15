@@ -8,6 +8,7 @@ use std::collections::HashMap;
 
 use crate::swagger::*;
 
+mod docx_to_html;
 mod swagger;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {

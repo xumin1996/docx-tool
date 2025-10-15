@@ -136,12 +136,3 @@ impl<'b> IndexMut for DocxDb<'b> {}
 impl<'b> AlterTable for DocxDb<'b> {}
 impl<'b> Transaction for DocxDb<'b> {}
 impl<'b> CustomFunctionMut for DocxDb<'b> {}
-
-#[test]
-pub fn to_xml() {
-    // 读取docx
-    let docx_content = include_bytes!("../../asset/测试.docx");
-    let mut docx: Docx = read_docx(docx_content).unwrap();
-    let docx_json = docx.json();
-    println!("{docx_json}");
-}

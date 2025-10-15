@@ -174,7 +174,7 @@ fn response_by_definitions<'a>(
                                         let mut pst = response_by_definitions(
                                             original_ref_value,
                                             &definitions,
-                                            used_name,
+                                            &mut used_name.clone(),
                                         );
                                         // 在每个参数前面加上"[]."
                                         pst.iter_mut().for_each(|item| {
@@ -213,9 +213,12 @@ fn response_by_definitions<'a>(
                         }
                     } else if let Some(original_ref_value) = &prop.original_ref {
                         // 对象
-                        let mut pst =
-                            response_by_definitions(original_ref_value, &definitions, used_name);
-                        // 在每个参数前面加上"[]."
+                        let mut pst = response_by_definitions(
+                            original_ref_value,
+                            &definitions,
+                            &mut used_name.clone(),
+                        );
+                        // 在每个参数前面加上"."
                         pst.iter_mut()
                             .for_each(|item| item.name = format!("{}.{}", name, item.name));
                         ps.extend(pst);
@@ -260,7 +263,7 @@ fn fill_value_by_definitions<'a>(
                                             original_ref_value,
                                             &mut value_item,
                                             &definitions,
-                                            used_name,
+                                            &mut used_name.clone(),
                                         );
                                         value.as_object_mut().unwrap().insert(
                                             name.to_string(),
@@ -295,7 +298,7 @@ fn fill_value_by_definitions<'a>(
                             original_ref_value,
                             &mut value_item,
                             &definitions,
-                            used_name,
+                            &mut used_name.clone(),
                         );
                         value
                             .as_object_mut()
