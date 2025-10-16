@@ -23,6 +23,13 @@ description = "编译x86"
 command = "cross"
 args = ["build", "--release", "--target", "x86_64-pc-windows-gnu"]
 
+[tasks.copy-to-output]
+description = "拷贝二进制文件"
+script = [
+    "mkdir -p target/output",
+    "cp target/wasm32-wasip1/release/docx-tool.wasm target/x86_64-pc-windows-gnu/release/docx-tool.exe target/x86_64-unknown-linux-musl/release/docx-tool target/output"
+]
+
 [tasks.build-all]
 description = "编译所有平台"
-dependencies = ["clean", "build-release", "build-musl", "build-wasm", "build-windows"]
+dependencies = ["clean", "build-release", "build-musl", "build-wasm", "build-windows", "copy-to-output"]
