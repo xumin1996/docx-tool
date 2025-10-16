@@ -52,7 +52,7 @@ pub fn parse_swagger_and_gen_docx(
                                     // 类似 List<String>
                                     query_params.push(DocxParamInfo {
                                         name: param.name.clone(),
-                                        data_type: "[]".to_string(),
+                                        data_type: "body.[]".to_string(),
                                         param_type: param_type.clone(),
                                         required: if param.required {
                                             "Y".to_string()
