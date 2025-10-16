@@ -1,0 +1,28 @@
+[tasks.clean]
+description = "清理环境"
+command = "cargo"
+args = ["clean"]
+
+[tasks.build-release]
+description = "编译release"
+command = "cargo"
+args = ["build", "--release"]
+
+[tasks.build-musl]
+description = "编译musl"
+command = "cargo"
+args = ["build", "--release", "--target", "x86_64-unknown-linux-musl"]
+
+[tasks.build-wasm]
+description = "编译wasm32-wasip1"
+command = "cargo"
+args = ["build", "--release", "--target", "wasm32-wasip1"]
+
+[tasks.build-windows]
+description = "编译x86"
+command = "cross"
+args = ["build", "--release", "--target", "x86_64-pc-windows-gnu"]
+
+[tasks.build-all]
+description = "编译所有平台"
+dependencies = ["clean", "build-release", "build-musl", "build-wasm", "build-windows"]
