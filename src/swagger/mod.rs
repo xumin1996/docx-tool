@@ -31,22 +31,44 @@ pub fn parse_swagger_and_gen_docx(
             let mut query_params: Vec<DocxParamInfo> = vec![];
             if let Some(params) = operation.parameters {
                 for param in params {
+                    let param_type = param.in_;
                     if let Some(schema) = param.schema {
                         if let SchemaRef::Ref { ref_, original_ref } = schema {
                             let mut ps = param_by_definitions(
                                 &original_ref.unwrap_or("".to_string()),
                                 &sw.definitions,
                             );
-                            // 在每个参数前面加上"body."
-                            ps.iter_mut()
-                                .for_each(|item| item.name = format!("body.{}", item.name));
+                            ps.iter_mut().for_each(|item| {
+                                // 在每个参数前面加上"body."
+                                item.name = format!("body.{}", item.name);
+
+                                // 设置param_type
+                                item.param_type = param_type.clone();
+                            });
                             query_params.extend(ps);
+                        } else if let SchemaRef::Primitives(property_box) = schema {
+                            if let Some(type_str) = property_box.type_ {
+                                if type_str == "array" {
+                                    // 类似 List<String>
+                                    query_params.push(DocxParamInfo {
+                                        name: param.name.clone(),
+                                        data_type: "[]".to_string(),
+                                        param_type: param_type.clone(),
+                                        required: if param.required {
+                                            "Y".to_string()
+                                        } else {
+                                            "N".to_string()
+                                        },
+                                        desc: param.description.clone().unwrap_or("".to_string()),
+                                    });
+                                }
+                            }
                         }
                     } else {
                         query_params.push(DocxParamInfo {
                             name: param.name.clone(),
                             data_type: param.param_type.clone().unwrap_or("".to_string()),
-                            param_type: param.in_,
+                            param_type: param_type,
                             required: if param.required {
                                 "Y".to_string()
                             } else {
@@ -182,21 +204,19 @@ fn response_by_definitions<'a>(
                                         });
                                         ps.extend(pst);
                                     }
-                                } else if let SchemaRef::Primitives {
-                                    type_,
-                                    description,
-                                    format,
-                                } = schema
-                                {
+                                } else if let SchemaRef::Primitives(property_box) = schema {
                                     // 属性
                                     let spi = DocxReturnParamInfo {
                                         // todo 优化
                                         name: format!(
                                             "{}.[].{}",
                                             name,
-                                            format.clone().unwrap_or("".to_string())
+                                            property_box.format.clone().unwrap_or("".to_string())
                                         ),
-                                        data_type: type_.clone().unwrap_or("".to_string()),
+                                        data_type: property_box
+                                            .type_
+                                            .clone()
+                                            .unwrap_or("".to_string()),
                                         desc: prop.description.clone().unwrap_or("".to_string()),
                                     };
                                     ps.push(spi);
@@ -270,12 +290,7 @@ fn fill_value_by_definitions<'a>(
                                             Value::Array(vec![value_item]),
                                         );
                                     }
-                                } else if let SchemaRef::Primitives {
-                                    type_,
-                                    description,
-                                    format,
-                                } = schema
-                                {
+                                } else if let SchemaRef::Primitives(property_box) = schema {
                                     // 属性
                                     // todo 空数组
                                     value
@@ -441,12 +456,7 @@ pub enum SchemaRef {
         original_ref: Option<String>,
     },
     // 原始类型 int long
-    Primitives {
-        #[serde(rename = "type")]
-        type_: Option<String>,
-        description: Option<String>,
-        format: Option<String>,
-    },
+    Primitives(Box<Property>),
     Object(Schema),
 }
 
