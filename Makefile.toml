@@ -23,6 +23,16 @@ description = "编译x86"
 command = "cross"
 args = ["build", "--release", "--target", "x86_64-pc-windows-gnu"]
 
+[tasks.build-darwin-aarch64]
+description = "编译apple的arm"
+command = "cross"
+args = ["build", "--release", "--target", "aarch64-apple-darwin"]
+
+[tasks.build-darwin-x86]
+description = "编译apple的arm"
+command = "cross"
+args = ["build", "--release", "--target", "x86_64-apple-darwin"]
+
 [tasks.copy-to-output]
 description = "拷贝二进制文件"
 script = [
