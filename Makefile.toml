@@ -40,6 +40,13 @@ script = [
     "cp target/wasm32-wasip1/release/docx-tool.wasm target/x86_64-pc-windows-gnu/release/docx-tool.exe target/x86_64-unknown-linux-musl/release/docx-tool target/output"
 ]
 
+[tasks.bloat-release]
+description = "crate大小占用"
+script = [
+    "mkdir -p target/output",
+    "cargo bloat --release --crates > target/output/crate.txt"
+]
+
 [tasks.build-all]
 description = "编译所有平台"
-dependencies = ["clean", "build-release", "build-musl", "build-wasm", "build-windows", "copy-to-output"]
+dependencies = ["clean", "build-release", "build-musl", "build-wasm", "build-windows", "bloat-release", "copy-to-output"]
